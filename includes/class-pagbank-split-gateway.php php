@@ -1,0 +1,13 @@
+<?php
+
+namespace WeDevs\DokanPro\Modules\VirtuariaPagBank;
+
+class PagBankSplit {
+    public function __construct() {
+        // Inicialize o gateway PagBank Split aqui
+    }
+
+    public function split_payment( $order_id ) {
+        // Código para dividir o pagamento com PagBank Split
+    }
+}
