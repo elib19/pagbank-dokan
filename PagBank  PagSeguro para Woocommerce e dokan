@@ -1,0 +1,121 @@
+<?php
+/**
+ * Plugin Name: Virtuaria PagBank / PagSeguro para Woocommerce + Dokan
+ * Plugin URI: https://virtuaria.com.br/virtuaria-pagseguro-plugin/
+ * Description: Adiciona o método de pagamento PagSeguro à sua loja virtual, agora com suporte ao Dokan.
+ * Author: Virtuaria
+ * Author URI: https://virtuaria.com.br/
+ * Version: 3.3.6
+ * License: GPLv2 or later
+ * WC tested up to: 8.6.1
+ *
+ * @package virtuaria
+ */
+
+defined( 'ABSPATH' ) || exit;
+
+if ( ! class_exists( 'Virtuaria_Pagseguro_Dokan' ) ) :
+
+    define( 'VIRTUARIA_PAGSEGURO_DOKAN_DIR', plugin_dir_path( __FILE__ ) );
+    define( 'VIRTUARIA_PAGSEGURO_DOKAN_URL', plugin_dir_url( __FILE__ ) );
+
+    class Virtuaria_Pagseguro_Dokan {
+
+        protected static $instance = null;
+
+        private $settings;
+
+        public static function get_instance() {
+            if ( null === self::$instance ) {
+                self::$instance = new self();
+            }
+
+            return self::$instance;
+        }
+
+        private function __construct() {
+            if ( ! class_exists( 'Extra_Checkout_Fields_For_Brazil' ) ) {
+                add_action( 'admin_notices', array( $this, 'missing_extra_checkout_fields' ) );
+                return;
+            }
+
+            add_action( 'init', array( $this, 'load_plugin_textdomain' ) );
+            add_action( 'before_woocommerce_init', array( $this, 'declare_compatibilities' ) );
+
+            if ( class_exists( 'WC_Payment_Gateway' ) ) {
+                $this->settings = get_option( 'woocommerce_virt_pagseguro_settings' );
+                $this->load_dependencies();
+                add_filter( 'woocommerce_payment_gateways', array( $this, 'add_gateway' ) );
+                
+                // Integrar ao Dokan
+                add_filter( 'dokan_get_seller_earning_percentage', array( $this, 'dokan_seller_earning' ), 10, 2 );
+            } else {
+                add_action( 'admin_notices', array( $this, 'missing_dependency' ) );
+            }
+        }
+
+        public function missing_dependency() {
+            ?>
+            <div class="notice notice-error is-dismissible">
+                <p><?php esc_attr_e( 'Virtuaria PagSeguro precisa do WooCommerce 4.0+ para funcionar!', 'virtuaria-pagseguro-dokan' ); ?></p>
+            </div>
+            <?php
+        }
+
+        private function load_dependencies() {
+            require_once 'includes/traits/trait-virtuaria-pagseguro-common.php';
+            require_once 'includes/traits/trait-virtuaria-pagseguro-credit.php';
+            require_once 'includes/traits/trait-virtuaria-pagseguro-pix.php';
+            require_once 'includes/traits/trait-virtuaria-pagseguro-ticket.php';
+
+            if ( isset( $this->settings['payment_form'] ) && 'separated' === $this->settings['payment_form'] ) {
+                require_once 'includes/class-wc-virtuaria-pagseguro-gateway-credit.php';
+                require_once 'includes/class-wc-virtuaria-pagseguro-gateway-pix.php';
+                require_once 'includes/class-wc-virtuaria-pagseguro-gateway-ticket.php';
+            } else {
+                require_once 'includes/class-wc-virtuaria-pagseguro-gateway.php';
+            }
+
+            require_once 'includes/class-virtuaria-pagseguro-handle-notifications.php';
+            require_once 'includes/class-wc-virtuaria-pagseguro-api.php';
+            require_once 'includes/class-virtuaria-pagseguro-settings.php';
+            require_once 'includes/class-virtuaria-pagseguro-events.php';
+            require_once 'includes/class-virtuaria-marketing-page.php';
+
+            if ( ! function_exists( 'get_plugin_data' ) && file_exists( ABSPATH . '/wp-admin/includes/plugin.php' ) ) {
+                require_once ABSPATH . '/wp-admin/includes/plugin.php';
+            }
+            $plugin_data = get_plugin_data( __FILE__ );
+            require_once 'includes/integrity-check.php';
+        }
+
+        public function add_gateway( $methods ) {
+            if ( isset( $this->settings['payment_form'] ) && 'separated' === $this->settings['payment_form'] ) {
+                $methods[] = 'WC_Virtuaria_PagSeguro_Gateway_Credit';
+                $methods[] = 'WC_Virtuaria_PagSeguro_Gateway_Pix';
+                $methods[] = 'WC_Virtuaria_PagSeguro_Gateway_Ticket';
+            } else {
+                $methods[] = 'WC_Virtuaria_PagSeguro_Gateway';
+            }
+            return $methods;
+        }
+
+        public function load_plugin_textdomain() {
+            load_plugin_textdomain( 'virtuaria-pagseguro-dokan', false, dirname( plugin_basename( __FILE__ ) ) . '/languages/' );
+        }
+
+        public function declare_compatibilities() {
+            if ( class_exists( '\Automattic\WooCommerce\Utilities\FeaturesUtil' ) ) {
+                \Automattic\WooCommerce\Utilities\FeaturesUtil::declare_compatibility( 'custom_order_tables', __FILE__, true );
+            }
+        }
+
+        public function dokan_seller_earning( $earning, $vendor_id ) {
+            // Implement logic for calculating seller earnings if necessary
+            return $earning; // Return the modified or unmodified earning value
+        }
+    }
+
+    add_action( 'plugins_loaded', array( 'Virtuaria_Pagseguro_Dokan', 'get_instance' ) );
+
+endif;
