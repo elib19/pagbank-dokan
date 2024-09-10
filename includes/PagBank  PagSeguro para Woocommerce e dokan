@@ -1,13 +1,5 @@
 <?php
 /**
- * Plugin Name: Virtuaria PagBank / PagSeguro para Woocommerce + Dokan
- * Plugin URI: https://virtuaria.com.br/virtuaria-pagseguro-plugin/
- * Description: Adiciona o método de pagamento PagSeguro à sua loja virtual, agora com suporte ao Dokan.
- * Author: Eli Silva
- * Author URI: https://brasilnarede.online
- * Version: 1.0.0
- * License: GPLv2 or later
- * WC tested up to: 8.6.1
  *
  * @package virtuaria
  */
