@@ -3,7 +3,7 @@
 Plugin Name: Dokan Virtuaria PagBank Integration
 Description: Integrates Virtuaria PagBank / PagSeguro and Virtuaria PagBank Split with Dokan.
 Version: 1.0.0
-Author: Seu Nome
+Author: Eli Silva
 Text Domain: dokan-virtuaria-pagbank
 */
 
